@@ -395,7 +395,11 @@ class NormalMeanNegativeLogProbLoss(DistributionNegativeLogProbLoss,
 
   @property
   def dist(self):
-    return tfp.distributions.Normal(loc=self._mean, scale=tf.sqrt(self._var))
+    if isinstance(self._mean, tf.Tensor):
+      var = tf.constant(self._var, dtype=self._mean.dtype)
+    else:
+      var = self._var
+    return tfp.distributions.Normal(loc=self._mean, scale=tf.sqrt(var))
 
   @property
   def params(self):
