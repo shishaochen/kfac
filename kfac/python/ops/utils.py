@@ -408,7 +408,7 @@ class SubGraph(object):
             "Identity", "ReadVariableOp", "Enter", "ResourceGather"]:
           for output in consumer.outputs:
             _add_tensor_consumers_to_set(output, consumers_set)
-        else:
+        elif not consumer.name.startswith("gradients/"):  # Force calculation
           consumers_set.add(consumer)
 
     consumers = set()
