@@ -74,7 +74,7 @@ def set_global_constants(normalize_damping_power=None, pi_type=None):
 
 def normalize_damping(damping, num_replications):
   """Normalize damping after adjusting scale by NORMALIZE_DAMPING_POWER."""
-  if NORMALIZE_DAMPING_POWER:
+  if NORMALIZE_DAMPING_POWER and NORMALIZE_DAMPING_POWER != 1.0:
     return damping / (num_replications ** NORMALIZE_DAMPING_POWER)
   return damping
 
@@ -866,19 +866,26 @@ class KroneckerProductFB(FisherBlock):
       reshaped_out = tf.scalar_mul(extra_scale, reshaped_out)
     return utils.mat2d_to_layer_params(vector, reshaped_out)
 
+  def _extra_scale(self, exp):
+    if exp == 1.0:
+      return self._renorm_coeff
+    if isinstance(self._renorm_coeff, tf.Tensor):
+      return tf.cast(self._renorm_coeff, dtype=self._input_factor._dtype)**exp
+    return float(self._renorm_coeff)**exp
+
   def multiply_matpower(self, vector, exp):
     left_factor = self._input_factor.get_matpower(
         exp, self._input_damping_func)
     right_factor = self._output_factor.get_matpower(
         exp, self._output_damping_func)
-    extra_scale = float(self._renorm_coeff)**exp
+    extra_scale = self._extra_scale(exp)
     return self._multiply_factored_matrix(left_factor, right_factor, vector,
                                           extra_scale=extra_scale)
 
   def multiply_cholesky(self, vector, transpose=False):
     left_factor = self._input_factor.get_cholesky(self._input_damping_func)
     right_factor = self._output_factor.get_cholesky(self._output_damping_func)
-    extra_scale = float(self._renorm_coeff)**0.5
+    extra_scale = self._extra_scale(0.5)
     return self._multiply_factored_matrix(left_factor, right_factor, vector,
                                           extra_scale=extra_scale,
                                           transpose_left=transpose,
@@ -889,7 +896,7 @@ class KroneckerProductFB(FisherBlock):
         self._input_damping_func)
     right_factor = self._output_factor.get_cholesky_inverse(
         self._output_damping_func)
-    extra_scale = float(self._renorm_coeff)**-0.5
+    extra_scale = self._extra_scale(-0.5)
     return self._multiply_factored_matrix(left_factor, right_factor, vector,
                                           extra_scale=extra_scale,
                                           transpose_left=transpose,
@@ -1539,7 +1546,7 @@ class FullyConnectedMultiIndepFB(InputOutputMultiTowerMultiUse,
 
   @property
   def _renorm_coeff(self):
-    return float(self._num_uses)
+    return self._num_uses
 
 
 class ConvKFCBasicMultiIndepFB(InputOutputMultiTowerMultiUse,
