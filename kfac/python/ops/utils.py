@@ -1310,7 +1310,10 @@ class MovingAverageVariable(object):
         Also this is added to the total accumulated weight. (Default: 1.0)
     """
 
-    decay = tf.convert_to_tensor(decay, dtype=self.dtype)
+    if isinstance(decay, tf.Tensor):
+      decay = tf.cast(decay, dtype=self.dtype)
+    else:
+      decay = tf.convert_to_tensor(decay, dtype=self.dtype)
     weight = tf.convert_to_tensor(weight, dtype=self.dtype)
 
     update_var = smart_assign(self._var, decay * self._var + weight * value)
